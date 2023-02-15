@@ -13,7 +13,7 @@ class totw:
     def dataloader(self):
 
         gw = 'gw' + str(self.gw)
-        url = 'C:/Users/Adnan/trial/gws/' + gw + '.csv'
+        url = 'gws/' + gw + '.csv'
         gw = pd.read_csv(url, encoding='latin1') # Load gameweek data
         pos_data = pd.read_csv('C:/Users/Adnan/Downloads/players_raw.csv', encoding='latin1') # Load position data
         gw = gw.sort_values(by = 'element').reset_index(drop=True).reindex()
@@ -114,6 +114,6 @@ class totw:
 
 if __name__ == "__main__":
 
-    r = totw(1, True)
+    r = totw(38, True)
     print(r.find_totw())
     
