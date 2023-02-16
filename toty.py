@@ -244,6 +244,15 @@ class toty:
 
 if __name__ == "__main__":
 
-    r = toty(1,38,True)
-    print(r.find_toty())
-    print(sum(r.find_points()))
+    list2 = []
+    for k in range(0,10):
+        r = toty(1,12,True)
+        s = toty(13,24,True)
+        t = toty(25,38,True)
+        print(r.find_toty())
+        print(s.find_toty())
+        print(t.find_toty())
+        print(sum(r.find_points()) + sum(s.find_points()) + sum(t.find_points()))
+        list2.append(sum(r.find_points()) + sum(s.find_points()) + sum(t.find_points()) - 72)
+
+    print(list2)
