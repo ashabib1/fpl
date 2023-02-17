@@ -85,7 +85,7 @@ class toty:
         df = self.dataloader(38)
         goalkeepers, defenders, midfielders, forwards = [], [], [], []
         players_per_team = [0] * 21
-        top_performers = self.top_performers(100)
+        top_performers = self.top_performers(250)
         for i in range(len(top_performers)):
             row = df.loc[df['element']==top_performers[i]].values.tolist()[0]
             if players_per_team[row[4]] == 3 and self.constraints == True:
@@ -189,7 +189,7 @@ class toty:
     # Find the elements of the team of the year
     def find_elements(self):
 
-        return [val[5] for val in self.toty_list]
+        return [val[5] for val in self.toty_list]# + [val for val in self.element]
 
     # Print the team of the year
     def print_toty(self):
@@ -232,27 +232,19 @@ class toty:
         remaining_positions = list((total_positions - taken_positions).elements()) # Find the substitute positions that need to be filled 
         df = self.dataloader(self.gw_i).sort_values("value")
         self.price_constraint = 1000
-        self.teams, self.names = [], []
+        self.teams, self.names, self.element = [], [], []
         for val in remaining_positions: # For every remaining position, find the cheapest substitutes that do not interfere with the team constraints
             for index, row in df.iterrows():
                 if row["element_type"] == val and row["name"] not in self.names and (self.main_teams.count(row["team"]) + self.teams.count(row["team"]))< 3:
                     self.price_constraint -= row["value"]
                     self.teams.append(row["team"])
                     self.names.append(row["name"])
+                    self.element.append(row["element"])
                     break
         return 0
 
 if __name__ == "__main__":
 
-    list2 = []
-    for k in range(0,10):
-        r = toty(1,12,True)
-        s = toty(13,24,True)
-        t = toty(25,38,True)
-        print(r.find_toty())
-        print(s.find_toty())
-        print(t.find_toty())
-        print(sum(r.find_points()) + sum(s.find_points()) + sum(t.find_points()))
-        list2.append(sum(r.find_points()) + sum(s.find_points()) + sum(t.find_points()) - 72)
-
-    print(list2)
+    r = toty(1,38)
+    print(r.find_toty())
+    print(r.find_elements())
