@@ -10,4 +10,4 @@ Points for awarded to players for goals, assists, saves, clean sheets as well as
 
 ## Project Goal
 
-The FPL game can be considered an optimisation problem, because we are attempting to maximise the total number of points of our squad in a one-season time period with a multitude of different constraints. The goal of this project is to find the highest scoring team over a sesason give the FPL constraints. I will be using the 2016-2017 FPL data to find an optimal combination of players to maximize the number of points scored over the season..
+The FPL game can be considered an optimisation problem, because we are attempting to maximise the total number of points of our squad in a one-season time period with a multitude of different constraints. The goal of this project is to find the highest scoring team over a sesason give the FPL constraints. I will be using the 2016-2017 FPL data to find an optimal combination of players to maximize the number of points scored over the season.
