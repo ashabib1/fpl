@@ -49,27 +49,35 @@ class evaluate:
 
         points = 0
         points += self.find_triple_captain() # Increase points for the Triple Captain Chip
-        self.gws[self.find_free_chip()[0]-1] = self.find_free_chip()[1]
-        self.points_list = self.find_points_list()
+        points -= self.find_deductable() # Deduct points for additional transfers made
+        free_hit_chip = self.find_free_chip()# Applies the Free Hit Chip
+        self.gws[free_hit_chip[0]-1] = free_hit_chip[1] # Change the gameweek players for the free hit chip
+        self.points_list = self.find_points_list() # Reinitialise the points list - Due to Free Hit Chip played
         for gw in range(1,39):
             gw_points_list = self.points_list[gw-1] # Extract a specific gameweek
-            print(gw_points_list)
             gw_points_list[gw_points_list.index(max(gw_points_list))] = gw_points_list[gw_points_list.index(max(gw_points_list))] * 2 # Multiply highest scoring player points by 2 for captaincy
-            print(gw_points_list)
             points += sum(gw_points_list) # Add gameweek points to total points
-        points -= self.find_deductable() # Deduct points for additional transfers made
         return points
     
+    # Find number of deductable points
     def find_deductable(self):
 
+        changes = []
         sum = 0
         for val in range(0,37):
+            changes.append(len(set(self.gws[val] + self.gws[val+1])) - 12)
             sum += len(set(self.gws[val] + self.gws[val+1])) - 12
-        if sum < 0:
+        first_wildcard = changes[0:18].index(max(changes[0:18])) # Find the maximum number of transfers in one gameweek for the first half of the season
+        second_wildcard = changes[18:37].index(max(changes[18:37])) # Find the maximum number of transfers in one gameweek for the second half of the season
+        print("The First Wilcard Chip will be played in Gameweek", first_wildcard + 2)
+        print("The Second Wildcard Chip will be played in Gameweek", second_wildcard + 20)
+        sum -= (max(changes[0:18]) + max(changes[18:37])) # Take away the transfer deductables for two gameweeks
+        if sum < 0: # If less transfers were used than one per week, there should be no deductables
             return 0
-        else:
+        else: # If more transfers were used than one per week, there are four points deducted per transfer exceeded
             return (4*sum)
     
+    # Find the gameweek for the Free Hit Chip
     def find_free_chip(self):
 
         totw_points = []
@@ -85,6 +93,7 @@ class evaluate:
         free_hit = totw(free_hit_gameweek,True)
         return [free_hit_gameweek, free_hit.extract_indices()]
     
+    # find the gameweek for the Triple Captain Chip
     def find_triple_captain(self):
         high_gameweek = -1
         high_points = -1
@@ -100,13 +109,13 @@ class evaluate:
         final_index = self.gws[high_gameweek - 1][high_index - 1]
         df = self.dataloader(38)
         name = df.loc[df['element']==final_index].values.tolist()[0][0]
-        print("The triple captaincy will be played in Gameweek", high_gameweek, "where the player", name, "scored", high_points, "points")
+        print("The Triple Captain Chip will be played in Gameweek", high_gameweek, "where the player", name, "scored", high_points, "points")
         return high_points
 
 
 if __name__ == "__main__":
 
-    a_list = [54, 78, 125, 33, 208, 83, 392, 394, 235, 403, 143]
+    a_list = [54, 78, 561, 77, 12, 398, 82, 394, 235, 403, 143]
     list1 = []
     for k in range(0,38):
         list1.append(a_list)
