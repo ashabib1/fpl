@@ -26,23 +26,51 @@ class totw:
     # Find the team of the week
     def find_totw(self):
 
-        df = self.dataloader().sort_values('total_points', ascending=False).head(100) # Sort
+        df = self.dataloader().sort_values('total_points', ascending=False) # Sort
         goalkeepers, defenders, midfielders, forwards = [], [], [], [] # Define list for each position
         players_per_team = [0] * 21
         for index, row in df.iterrows(): # Iterate through rows and append highest points
             if players_per_team[row['team']] == 3 and self.team_constraint == True: # Check if there is a need to satisfy the team constraint
                 continue
             if row['element_type'] == 1 and len(goalkeepers) < 1:
-                goalkeepers.append(row.values.tolist())
+                try:
+                    df.loc[df['element']==row[5]].values.tolist()[1][1]
+                except:
+                    goalkeepers.append(row.values.tolist())
+                else:
+                    to_add = row.values.tolist()
+                    to_add[1] += df.loc[df['element']==row[5]].values.tolist()[1][1]
+                    goalkeepers.append(to_add)
                 players_per_team[row['team']] += 1
             if row['element_type'] == 2 and len(defenders) < 5:
-                defenders.append(row.values.tolist())
+                try:
+                    df.loc[df['element']==row[5]].values.tolist()[1][1]
+                except:
+                    defenders.append(row.values.tolist())
+                else:
+                    to_add = row.values.tolist()
+                    to_add[1] += df.loc[df['element']==row[5]].values.tolist()[1][1]
+                    defenders.append(to_add)
                 players_per_team[row['team']] += 1
             if row['element_type'] == 3 and len(midfielders) < 5:
-                midfielders.append(row.values.tolist())
+                try:
+                    df.loc[df['element']==row[5]].values.tolist()[1][1]
+                except:
+                    midfielders.append(row.values.tolist())
+                else:
+                    to_add = row.values.tolist()
+                    to_add[1] += df.loc[df['element']==row[5]].values.tolist()[1][1]
+                    midfielders.append(to_add)
                 players_per_team[row['team']] += 1
             if row['element_type'] == 4 and len(forwards) < 3:
-                forwards.append(row.values.tolist())
+                try:
+                    df.loc[df['element']==row[5]].values.tolist()[1][1]
+                except:
+                    forwards.append(row.values.tolist())
+                else:
+                    to_add = row.values.tolist()
+                    to_add[1] += df.loc[df['element']==row[5]].values.tolist()[1][1]
+                    forwards.append(to_add)
                 players_per_team[row['team']] += 1
         self.totw_list = [goalkeepers[0],defenders[0],defenders[1],defenders[2],midfielders[0],midfielders[1],forwards[0]] # totw_list consists of confirmed values in the team of the week
         toss_up = [defenders[3],defenders[4],midfielders[2],midfielders[3],midfielders[4],forwards[1],forwards[2]] # toss_up consists of players that may be in the team of the week depending on the formation
@@ -64,6 +92,10 @@ class totw:
     def extract_names(self):
 
         return [val[0] for val in self.totw]
+    
+    def extract_points(self):
+
+        return [val[1] for val in self.totw]
     
     # Find the cumulative number of points from the team of the weeks up to now
     def totw_cumulative(self):
@@ -101,7 +133,7 @@ class totw:
         remaining_positions = list((total_positions - taken_positions).elements()) # Find the substitute positions that need to be filled 
         df = self.dataloader().sort_values("value")
         self.price_constraint = 1000
-        self.teams, self.names = [], []
+        self.teams, self.names, elements = [], [], []
         for val in remaining_positions: # For every remaining position, find the cheapest substitutes that do not interfere with the team constraints
             for index, row in df.iterrows():
                 if row["element_type"] == val and row["name"] not in self.names and (self.main_teams.count(row["team"]) + self.teams.count(row["team"]))< 3:
@@ -109,11 +141,18 @@ class totw:
                     self.teams.append(row["team"])
                     self.names.append(row["name"])
                     break
-        return 0
+        return elements
 
 
 if __name__ == "__main__":
 
-    r = totw(38, True)
+    #points = 0
+    #for k in range(1,39):
+    #    r = totw(k, True)
+    #    print(r.find_totw())
+    #    points += sum(r.extract_points())
+    #print(points - 36*40)
+
+    r = totw(37, True)
     print(r.find_totw())
-    
+    print(sum(r.extract_points()))
