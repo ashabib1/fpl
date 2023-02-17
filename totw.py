@@ -97,6 +97,10 @@ class totw:
 
         return [val[1] for val in self.totw]
     
+    def extract_prices(self):
+
+        return [val[2] for val in self.totw]
+    
     # Find the cumulative number of points from the team of the weeks up to now
     def totw_cumulative(self):
 
@@ -133,15 +137,17 @@ class totw:
         remaining_positions = list((total_positions - taken_positions).elements()) # Find the substitute positions that need to be filled 
         df = self.dataloader().sort_values("value")
         self.price_constraint = 1000
-        self.teams, self.names, elements = [], [], []
+        self.teams, self.names, self.subs = [], [], []
         for val in remaining_positions: # For every remaining position, find the cheapest substitutes that do not interfere with the team constraints
             for index, row in df.iterrows():
                 if row["element_type"] == val and row["name"] not in self.names and (self.main_teams.count(row["team"]) + self.teams.count(row["team"]))< 3:
                     self.price_constraint -= row["value"]
                     self.teams.append(row["team"])
                     self.names.append(row["name"])
+                    self.subs.append(row.tolist())
                     break
-        return elements
+        print(sum([val[2] for val in self.subs]))
+        return 0
 
 
 if __name__ == "__main__":
@@ -155,4 +161,5 @@ if __name__ == "__main__":
 
     r = totw(37, True)
     print(r.find_totw())
-    print(sum(r.extract_points()))
+    print(r.check_constraints())
+    print(sum(r.extract_prices()))
