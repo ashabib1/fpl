@@ -4,10 +4,11 @@ import pandas as pd
 
 class evaluate:
 
-    def __init__(self, gws):
+    def __init__(self, gws, subs=[]):
 
         self.gws = gws
         self.points_list = self.find_points_list()
+        self.subs = subs
 
     def dataloader(self, gw):
 
@@ -45,11 +46,13 @@ class evaluate:
             full_points_list.append(points_list) # Append gameweek points list to overall points list   
         return full_points_list
 
+    # Find total number of points for a set of players
     def total_points(self):
 
         points = 0
         points += self.find_triple_captain() # Increase points for the Triple Captain Chip
         points -= self.find_deductable() # Deduct points for additional transfers made
+        points += self.find_bench_boost()
         free_hit_chip = self.find_free_chip()# Applies the Free Hit Chip
         self.gws[free_hit_chip[0]-1] = free_hit_chip[1] # Change the gameweek players for the free hit chip
         self.points_list = self.find_points_list() # Reinitialise the points list - Due to Free Hit Chip played
@@ -89,7 +92,7 @@ class evaluate:
             weekly_points.append(sum(self.points_list[k]))
         totw_difference = [a - b for a, b in zip(totw_points, weekly_points)]
         free_hit_gameweek = totw_difference.index(max(totw_difference)) + 1
-        print("The Free Hit Chip will be played in Gameweek", free_hit_gameweek)
+        print("The Free Hit Chip will be played in Gameweek", free_hit_gameweek, "earning an extra", max(totw_difference), "points")
         free_hit = totw(free_hit_gameweek,True)
         return [free_hit_gameweek, free_hit.extract_indices()]
     
@@ -112,19 +115,68 @@ class evaluate:
         print("The Triple Captain Chip will be played in Gameweek", high_gameweek, "where the player", name, "scored", high_points, "points")
         return high_points
 
+    def find_bench_boost(self):
+        
+        if self.subs == []:
+            return 0
+        subs_points = []
+        for k in range(1,39):
+            df = self.dataloader(k)
+            local_points = 0
+            for val in self.subs[k-1]:
+                try:
+                    df.loc[df['element']==val].values.tolist()[0][1]
+                except:
+                    local_points += 0
+                else:
+                    local_points += df.loc[df['element']==val].values.tolist()[0][1]
+            subs_points.append(local_points)
+        print("The Bench Boost Chip will be played in Gameweek", subs_points.index(max(subs_points)) + 1, "earning an extra", max(subs_points), "points")
+        return max(subs_points)
 
 if __name__ == "__main__":
 
-    a_list = [54, 78, 561, 77, 12, 398, 82, 394, 235, 403, 143]
+    a_list = [54, 191, 125, 33, 204, 392, 82, 394, 235, 403, 143]
+    b_list = [524, 435, 434, 508]
     list1 = []
+    list3 = []
     for k in range(0,38):
         list1.append(a_list)
-    s = evaluate(list1)
+        list3.append(b_list)
+    s = evaluate(list1, list3)
     print(s.total_points())
 
+    c_list = [356, 297, 33, 303, 12, 92, 212, 205, 208, 97, 272]
+    d_list = [219, 301, 125, 558, 12, 398, 48, 208, 402, 403, 143]
+    c_list_sub = [472, 435, 434, 508]
+    d_list_sub = [147, 196, 319, 579]
+    list_10, list_11 = [], []
+    for k in list(range(0,19)):
+        list_10.append(c_list)
+        list_11.append(c_list_sub)
+    for k in list(range(19,38)):
+        list_10.append(d_list)
+        list_11.append(d_list_sub)
+    m = evaluate(list_10, list_11)
+    print(m.total_points())
+
     list2 = []
+    subs = []
     for k in range(1,39):
         r = totw(k,True)
         list2.append(r.extract_indices())
-    t = evaluate(list2)
+        subs.append(r.extract_subs())
+    t = evaluate(list2, subs)
     print(t.total_points())
+
+    list3 = []
+    list4 = []
+    for k in range(1,20):
+        r = toty(2*k-1,2*k,True)
+        r.find_toty()
+        list3.append(r.find_elements())
+        list3.append(r.find_elements())
+        list4.append(r.extract_subs_elements())
+        list4.append(r.extract_subs_elements())
+    n = evaluate(list3, list4)
+    print(n.total_points())
