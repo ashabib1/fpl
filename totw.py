@@ -3,10 +3,10 @@ from collections import Counter
 
 class totw:
 
-    def __init__(self, gw, team_constraint=False):
+    def __init__(self, gw, constraints=False):
 
         self.gw = gw
-        self.team_constraint = team_constraint
+        self.constraints = constraints
         self.totw = self.find_totw()
 
     # Load the data for the gameweek
@@ -30,7 +30,7 @@ class totw:
         goalkeepers, defenders, midfielders, forwards = [], [], [], [] # Define list for each position
         players_per_team = [0] * 21
         for index, row in df.iterrows(): # Iterate through rows and append highest points
-            if players_per_team[row['team']] == 3 and self.team_constraint == True: # Check if there is a need to satisfy the team constraint
+            if players_per_team[row['team']] == 3 and self.constraints == True: # Check if there is a need to satisfy the team constraint
                 continue
             if row['element_type'] == 1 and len(goalkeepers) < 1:
                 try:
@@ -80,6 +80,13 @@ class totw:
         for val in range(0,4):
             self.totw_list.append(toss_up[toss_up_total_points.index(max(toss_up_total_points))])
             toss_up_total_points[toss_up_total_points.index(max(toss_up_total_points))] = -1
+        while  self.constraints == True and self.check_constraints() == False: # Check the value constraint
+            t = toss_up[toss_up_total_points.index(max(toss_up_total_points))]
+            for val in self.totw_list:
+                if val[3] == t[3] and val[2] > t[2]:
+                    self.totw_list[self.totw_list.index(val)] = t
+                    break
+            toss_up_total_points[toss_up_total_points.index(max(toss_up_total_points))] = -1
         self.totw_list = sorted(self.totw_list, key = lambda x:x[3]) # Sort the list
         return self.totw_list
 
@@ -101,17 +108,21 @@ class totw:
 
         return [val[2] for val in self.totw]
     
+    def extract_subs(self):
+
+        return [val[5] for val in self.subs]
+    
     # Find the cumulative number of points from the team of the weeks up to now
     def totw_cumulative(self):
 
-        return sum(sum(val[1] for val in totw(k,self.team_constraint).totw) for k in range(1, self.gw+1))
+        return sum(sum(val[1] for val in totw(k,self.constraints).totw) for k in range(1, self.gw+1))
 
     # Check if the three constraints are satisfied for the team of the week: Price, Team & Position
     def check_constraints(self):
 
         #print("Position constraint is satisfied") # Team of the week position constraints are satisfied regardlesss
-        total_value = sum(val[2] for val in self.totw)
-        self.main_teams = [val[4] for val in self.totw]
+        total_value = sum(val[2] for val in self.totw_list)
+        self.main_teams = [val[4] for val in self.totw_list]
         self.find_subs()
         #if total_value > self.price_constraint: # If total price of players are greater than 1000, the constraint is not satisfied
         #    print("Price constraint is not satisfied")
@@ -133,7 +144,7 @@ class totw:
     def find_subs(self):
 
         total_positions = Counter([1,1,2,2,2,2,2,3,3,3,3,3,4,4,4])
-        taken_positions = Counter([val[3] for val in self.totw])
+        taken_positions = Counter([val[3] for val in self.totw_list])
         remaining_positions = list((total_positions - taken_positions).elements()) # Find the substitute positions that need to be filled 
         df = self.dataloader().sort_values("value")
         self.price_constraint = 1000
@@ -146,8 +157,7 @@ class totw:
                     self.names.append(row["name"])
                     self.subs.append(row.tolist())
                     break
-        print(sum([val[2] for val in self.subs]))
-        return 0
+        return self.subs
 
 
 if __name__ == "__main__":
@@ -161,5 +171,6 @@ if __name__ == "__main__":
 
     r = totw(37, True)
     print(r.find_totw())
-    print(r.check_constraints())
-    print(sum(r.extract_prices()))
+    print(r.extract_indices())
+    print(r.find_subs())
+    print(r.extract_subs())
