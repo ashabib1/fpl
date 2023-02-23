@@ -61,7 +61,7 @@ class toty:
     # Find the top performers for over a give range of gameweeks
     def top_performers(self, num):
 
-        points = [0] * 700
+        self.points = [0] * 700
         for val in range(self.gw_i, self.gw_f+1): # Go through each gameweek and add the points by each player
             df = self.dataloader(val)
             points_df = df['total_points'].tolist()
@@ -71,12 +71,13 @@ class toty:
             for val in elements_df:
                 gw_points[val] += points_df[i]
                 i += 1
-            points = [x + y for x, y in zip(points, gw_points)]
+            self.points = [x + y for x, y in zip(self.points, gw_points)]
         indices = []
+        local_points = self.points.copy()
         for val in range(1,num+1): # For loop to find the players with the top num performers
-            max_val = max(points)
-            indices.append(points.index(max_val))
-            points[points.index(max_val)] = -1
+            max_val = max(local_points)
+            indices.append(local_points.index(max_val))
+            local_points[local_points.index(max_val)] = -1
         return indices
 
     # Find the team of the year over a given range of gameweeks
@@ -107,17 +108,14 @@ class toty:
                 players_per_team[row[4]] += 1
                 top_performers[i] = -1
         toty_list = [goalkeepers[0],defenders[0],defenders[1],defenders[2],midfielders[0],midfielders[1],forwards[0]]
-        toss_up = [defenders[3],defenders[4],midfielders[2],midfielders[3],midfielders[4],forwards[1],forwards[2]]
+        self.toss_up = [defenders[3],defenders[4],midfielders[2],midfielders[3],midfielders[4],forwards[1],forwards[2]]
         toss_up_total_points = []
-        for val in toss_up:
+        for val in self.toss_up:
             toss_up_total_points.append(self.objective([val[5]]))
         for val in range(0,4):
-            toty_list.append(toss_up[toss_up_total_points.index(max(toss_up_total_points))])
+            toty_list.append(self.toss_up[toss_up_total_points.index(max(toss_up_total_points))])
             toss_up_total_points[toss_up_total_points.index(max(toss_up_total_points))] = -1
         self.toty_list = sorted(toty_list, key = lambda x:x[3])
-        if self.check_constraints() == False and self.constraints == True:
-            self.constraint_optimising(top_performers, df)
-        self.toty_list = sorted(self.toty_list, key = lambda x:x[3])
         df_i = self.dataloader(self.gw_i)
         for val in self.toty_list:
             val[1] = self.objective([val[5]])
@@ -127,7 +125,40 @@ class toty:
                 val[2] = val[2]
             else:
                 val[2] = df_i.loc[df_i['element']==val[5]].values.tolist()[0][2]
+        if self.check_constraints() == False and self.constraints == True:
+            self.constraint_optimising_2(top_performers, df)
+        self.toty_list = sorted(self.toty_list, key = lambda x:x[3])
         return self.toty_list
+    
+    def constraint_optimising_2(self, top_performers, df):
+
+        checked_elements = []
+        potential_toty = []
+        self.price_diff = []
+        self.points_diff = []
+        local_check = self.toty_list.copy()
+        for val in self.toss_up:
+            val[1] = self.points[val[5]]
+            local_check = self.toty_list.copy()
+            if val[5] in [i[5] for i in self.toty_list]:
+                continue
+            checked_elements.append(val[5])
+            self.local_price_diff, self.local_points_diff = [], []
+            for k in range(len(local_check)):
+                local_check = self.toty_list.copy()
+                local_check[k] = val
+                if self.check_constraints_local(local_check):
+                    potential_toty.append(local_check)
+            self.price_diff.append(self.local_price_diff)
+            self.points_diff.append(self.local_points_diff)
+        max_potential = -1
+        max_pts = -1
+        for val in potential_toty:
+            if sum([i[1] for i in val]) > max_pts:
+                max_potential = val
+        self.toty_list = max_potential
+        return
+
 
     def constraint_optimising(self, top_performers, df):
         pos = self.find_positions()
@@ -190,6 +221,10 @@ class toty:
     def find_elements(self):
 
         return [val[5] for val in self.toty_list]# + [val for val in self.element]
+    
+    def extract_subs_elements(self):
+
+        return [val[5] for val in self.subs]
 
     # Print the team of the year
     def print_toty(self):
@@ -210,16 +245,40 @@ class toty:
         return sum(self.find_prices())
 
     # Check if the three constraints are satisfied for the team of the week: Price, Team & Position
+    def check_constraints_local(self, local_check):
+
+        positions = [val[3] for val in local_check]
+        total_value = sum(val[2] for val in local_check)
+        self.main_teams = [val[4] for val in local_check]
+        self.find_subs()
+        team_boolean = True
+        position_boolean = True
+        self.local_price_diff.append(total_value - sum(self.find_prices()))
+        self.local_points_diff.append(sum(val[1] for val in local_check) - sum(self.find_points()))
+        if positions.count(1) != 1 or positions.count(2) < 3 or positions.count(2) > 5 or positions.count(3) < 2 or positions.count(3) > 5 or positions.count(4) < 1 or positions.count(4) > 3: # Check Positions Constraint
+            position_boolean = False
+        for val in range(1,21): # If number of players from the same team is greater than 3, the team constraint is not satisfied
+            if self.main_teams.count(val) > 3:
+                team_boolean = False
+        if total_value > self.price_constraint or team_boolean == False or position_boolean == False: # If any of the constraints are not satisfied, return false. Else, return true.
+            return False
+        else:
+            return True
+        
     def check_constraints(self):
 
+        positions = [val[3] for val in self.toty_list]
         total_value = sum(val[2] for val in self.toty_list)
         self.main_teams = [val[4] for val in self.toty_list]
         self.find_subs()
-        boolean = True
-        for val in range(1,21): # If number of players from the same team is greater than 3, the constraint is not satisfied
+        team_boolean = True
+        position_boolean = True
+        if positions.count(1) != 1 or positions.count(2) < 3 or positions.count(2) > 5 or positions.count(3) < 2 or positions.count(3) > 5 or positions.count(4) < 1 or positions.count(4) > 3: # Check Positions Constraint
+            position_boolean = False
+        for val in range(1,21): # If number of players from the same team is greater than 3, the team constraint is not satisfied
             if self.main_teams.count(val) > 3:
-                boolean = False
-        if total_value > self.price_constraint or boolean == False: # If any of the constraints are not satisfied, return false. Else, return true.
+                team_boolean = False
+        if total_value > self.price_constraint or team_boolean == False or position_boolean == False: # If any of the constraints are not satisfied, return false. Else, return true.
             return False
         else:
             return True
@@ -231,8 +290,9 @@ class toty:
         taken_positions = Counter([val[3] for val in self.toty_list])
         remaining_positions = list((total_positions - taken_positions).elements()) # Find the substitute positions that need to be filled 
         df = self.dataloader(self.gw_i).sort_values("value")
+        #df = df.sample(frac=1) # Add Randomness
         self.price_constraint = 1000
-        self.teams, self.names, self.element = [], [], []
+        self.teams, self.names, self.element, self.subs = [], [], [], []
         for val in remaining_positions: # For every remaining position, find the cheapest substitutes that do not interfere with the team constraints
             for index, row in df.iterrows():
                 if row["element_type"] == val and row["name"] not in self.names and (self.main_teams.count(row["team"]) + self.teams.count(row["team"]))< 3:
@@ -240,11 +300,22 @@ class toty:
                     self.teams.append(row["team"])
                     self.names.append(row["name"])
                     self.element.append(row["element"])
+                    self.subs.append(row.tolist())
                     break
-        return 0
+        return self.subs
 
 if __name__ == "__main__":
 
-    r = toty(1,38)
-    print(r.find_toty())
+    r = toty(1,38,True)
+    #s = toty(20,38,True)
+    r.find_toty()
+    #s.find_toty()
     print(r.find_elements())
+    #print(s.find_elements())
+    #print(r.extract_subs_elements())
+    #print(s.extract_subs_elements())
+    #print(sum(r.find_points()) + sum(s.find_points()))
+    print(r.find_points())
+    print(r.find_names())
+    print((r.find_prices()))
+    print(sum(r.find_points()))
