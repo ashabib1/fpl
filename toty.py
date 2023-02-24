@@ -95,13 +95,13 @@ class toty:
                 forwards.append(row)
             players_per_team[row[4]] += 1 # Keep in check the number of players per team
         toty_list = [goalkeepers[0],defenders[0],defenders[1],defenders[2],midfielders[0],midfielders[1],forwards[0]] # Guaranteed to be in the team of the year
-        self.toss_up = [defenders[3],defenders[4],midfielders[2],midfielders[3],midfielders[4],forwards[1],forwards[2]] # Players that may be in the team of the year, depending on who has the highest points
+        toss_up = [defenders[3],defenders[4],midfielders[2],midfielders[3],midfielders[4],forwards[1],forwards[2]] # Players that may be in the team of the year, depending on who has the highest points
         self.performers = defenders + midfielders + forwards
         toss_up_total_points = []
-        for val in self.toss_up: # Find the total points for all the values in the toss up
+        for val in toss_up: # Find the total points for all the values in the toss up
             toss_up_total_points.append(self.objective([val[5]]))
         for val in range(0,4): # Add the highest point totals from the toss up to the team of the year list
-            toty_list.append(self.toss_up[toss_up_total_points.index(max(toss_up_total_points))])
+            toty_list.append(toss_up[toss_up_total_points.index(max(toss_up_total_points))])
             toss_up_total_points[toss_up_total_points.index(max(toss_up_total_points))] = -1
         self.toty_list = sorted(toty_list, key = lambda x:x[3]) # Sort the team of the year by position 
         df_i = self.dataloader(self.gw_i)
@@ -119,59 +119,35 @@ class toty:
         return self.toty_list
     
     # If we take into account the constraints, this function finds a team of the year that satisfies the constraints.
-    def constraint_optimising(self):
-
+    def constraint_optimising(self, changes=1):
+        
         potential_toty = []
         for val in self.performers:
             val[1] = self.points[val[5]]
-            if val[5] in [i[5] for i in self.toty_list]:
-                continue
-            for k in range(len(self.toty_list)):
-                local_check = self.toty_list.copy()
-                local_check[k] = val
-                if self.check_constraints(local_check):
-                    potential_toty.append(local_check)
+        points_per_price = [val[1] / val[2] for val in self.performers] # Find points per price of potential replacements
+        toty_points_per_price = [val[1] / val[2] for val in self.toty_list] # Find points per price of the team of the year
+        to_change = toty_points_per_price.index(min(toty_points_per_price)) # Find the team of the year player to change
+        if changes == 2: # If needed, find the second team of the year that needs to be changed
+            toty_points_per_price[toty_points_per_price.index(min(toty_points_per_price))] = 1000 # Remove the index from minimum points per price
+            second_change = toty_points_per_price.index(min(toty_points_per_price)) 
+        for val in range(len(points_per_price)): # Replace all the highest performers with the lowest team of the year performer
+            toty_edited = self.toty_list.copy()
+            toty_edited[to_change] = self.performers[points_per_price.index(max(points_per_price))]
+            points_per_price[points_per_price.index(max(points_per_price))] = -1
+            if changes == 2: # Replace second lowest team of the year performer
+                toty_edited[second_change] = self.performers[points_per_price.index(max(points_per_price))]
+            if self.check_constraints(toty_edited): # Check if constraints are satisfied
+                potential_toty.append(toty_edited)
         max_potential = -1
         max_pts = -1
-        for val in potential_toty:
+        for val in potential_toty: # Find the best team of the year
             if sum([i[1] for i in val for val in potential_toty]) > max_pts:
                 max_potential = val
                 max_pts = sum([i[1] for i in val for val in potential_toty])
-        if max_potential != -1:
+        if max_potential != -1: # Replace the team of the year
             self.toty_list = max_potential
-        else:
-            print("L")
-            self.constraint_optimising_squared()
-        return
-
-    def constraint_optimising_squared(self):
-
-        potential_toty = []
-        self.performers = sorted(self.performers, key = lambda x:x[1], reverse = True)[0:10]
-        for val in self.performers:
-            val[1] = self.points[val[5]]
-            if val[5] in [i[5] for i in self.toty_list]:
-                continue
-            for val_2 in self.performers:
-                if val == val_2:
-                    continue
-                for k in range(len(self.toty_list)):
-                    for m in range(len(self.toty_list)):
-                        if k == m:
-                            continue
-                        local_check = self.toty_list.copy()
-                        local_check[k] = val
-                        local_check[m] = val_2
-                        if self.check_constraints(local_check):
-                            potential_toty.append(local_check)
-        max_potential = -1
-        max_pts = -1
-        for val in potential_toty:
-            if sum([i[1] for i in val for val in potential_toty]) > max_pts:
-                max_potential = val
-                max_pts = sum([i[1] for i in val for val in potential_toty])
-        if max_potential != -1:
-            self.toty_list = max_potential
+        else: # If there are no potential team of the years, try again with two changes
+            self.constraint_optimising(changes=2)
         return
 
     # Find the names of the team of the year
@@ -251,11 +227,11 @@ class toty:
 
 if __name__ == "__main__":
 
-    for k in range(1,38):
-        r = toty(k,38,True)
-        r.find_toty()
-        print(r.find_elements())
-        print(r.find_points())
-        print(r.find_names())
-        print((r.find_prices()))
-        print(sum(r.find_points()))
+    r = toty(4,4,True)
+    r.find_toty()
+    print(r.find_elements())
+    print(r.find_points())
+    print(r.find_names())
+    print(sum(r.find_prices()))
+    print((r.find_prices()))
+    print(sum(r.find_points()))
