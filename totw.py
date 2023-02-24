@@ -3,30 +3,45 @@ from collections import Counter
 
 class totw:
 
-    def __init__(self, gw, constraints=False):
+    def __init__(self, gw, constraints=False, transfer_dependent=False):
 
         self.gw = gw
         self.constraints = constraints
+        self.transfer_dependent = transfer_dependent
         self.totw = self.find_totw()
 
     # Load the data for the gameweek
     def dataloader(self):
 
-        gw = 'gw' + str(self.gw)
-        url = 'gws/' + gw + '.csv'
-        gw = pd.read_csv(url, encoding='latin1') # Load gameweek data
-        pos_data = pd.read_csv('C:/Users/Adnan/Downloads/players_raw.csv', encoding='latin1') # Load position data
-        gw = gw.sort_values(by = 'element').reset_index(drop=True).reindex()
-        pos_data = pos_data.rename(columns={'id': 'element'})
-        pos_data_team_element = pos_data[['element', 'element_type','team']] # Extract position and team data
-        gw = pd.merge(gw, pos_data_team_element, on=['element'], how='left') # Merge dataframes
-        gw = gw[['name','total_points','value','element_type','team','element']]
-        return gw
+        gw = pd.read_csv('gws/gw' + str(self.gw) + '.csv', encoding='latin1').sort_values(by = 'element').reset_index(drop=True).reindex() # Load gameweek data
+        pos_data = pd.read_csv('players_raw.csv', encoding='latin1').rename(columns={'id': 'element'}) # Load position data
+        gw = pd.merge(gw, pos_data[['element', 'element_type','team']], on=['element'], how='left') # Extract Important Columns from Position data and Merge dataframes
+        return gw[['name','total_points','value','element_type','team','element']] # Return Dataframe with important columns
 
+    def prev_dataloader(self):
+
+        gw = pd.read_csv('gws/gw' + str(self.gw) + '.csv', encoding='latin1').sort_values(by = 'element').reset_index(drop=True).reindex() # Load gameweek data
+        pos_data = pd.read_csv('players_raw.csv', encoding='latin1').rename(columns={'id': 'element'}) # Load position data
+        gw = pd.merge(gw, pos_data[['element', 'element_type','team']], on=['element'], how='left') # Extract Important Columns from Position data and Merge dataframes
+        prev_gameweek = totw(gw=self.gw-1, constraints=self.constraints, transfer_dependent=self.transfer_dependent)
+        self.prev_subs = prev_gameweek.extract_subs()
+        prev_totw = prev_gameweek.extract_indices()
+        list2 = []
+        for k in range(1,len(gw['total_points'])+1):
+            if k in prev_totw:
+                list2.append(4)
+            else:
+                list2.append(0)
+        gw['effective_points'] = [x + y for x, y in zip(gw['total_points'], list2)]
+        return gw[['name','total_points','value','element_type','team','element','effective_points']] # Return Dataframe with important columns
+    
     # Find the team of the week
     def find_totw(self):
 
-        df = self.dataloader().sort_values('total_points', ascending=False) # Sort
+        if self.transfer_dependent == True and self.gw != 1:
+            df = self.prev_dataloader().sort_values('effective_points', ascending=False) # Sort
+        else:
+            df = self.dataloader().sort_values('total_points', ascending=False) # Sort
         goalkeepers, defenders, midfielders, forwards = [], [], [], [] # Define list for each position
         players_per_team = [0] * 21
         for index, row in df.iterrows(): # Iterate through rows and append highest points
@@ -80,7 +95,7 @@ class totw:
         for val in range(0,4):
             self.totw_list.append(toss_up[toss_up_total_points.index(max(toss_up_total_points))])
             toss_up_total_points[toss_up_total_points.index(max(toss_up_total_points))] = -1
-        while  self.constraints == True and self.check_constraints() == False: # Check the value constraint
+        while self.constraints == True and self.check_constraints() == False: # Check the value constraint
             t = toss_up[toss_up_total_points.index(max(toss_up_total_points))]
             for val in self.totw_list:
                 if val[3] == t[3] and val[2] > t[2]:
@@ -120,22 +135,13 @@ class totw:
     # Check if the three constraints are satisfied for the team of the week: Price, Team & Position
     def check_constraints(self):
 
-        #print("Position constraint is satisfied") # Team of the week position constraints are satisfied regardlesss
         total_value = sum(val[2] for val in self.totw_list)
         self.main_teams = [val[4] for val in self.totw_list]
         self.find_subs()
-        #if total_value > self.price_constraint: # If total price of players are greater than 1000, the constraint is not satisfied
-        #    print("Price constraint is not satisfied")
-        #else:
-        #    print("Price constraint is satisfied")
-        boolean = True
-        for val in range(1,21): # If number of players from the same team is greater than 3, the constraint is not satisfied
+        for val in range(1,21):
             if self.main_teams.count(val) > 3:
-        #        print("Team constraint is not satisfied")
-                boolean = False
-        #if boolean == True:
-        #    print("Team constraint is satisfied")
-        if total_value > self.price_constraint or boolean == False: # If any of the constraints are not satisfied, return false. Else, return true.
+                return False
+        if total_value > self.price_constraint: # If any of the constraints are not satisfied, return false. Else, return true.
             return False
         else:
             return True
@@ -149,7 +155,23 @@ class totw:
         df = self.dataloader().sort_values("value")
         self.price_constraint = 1000
         self.teams, self.names, self.subs = [], [], []
+        if self.transfer_dependent == True and self.gw != 1:
+            for val in self.prev_subs:
+                try:
+                    df[df['element'] == val].values.tolist()[0]
+                except:
+                    continue
+                else:
+                    prev_row = df[df['element'] == val].values.tolist()[0]
+                if (prev_row[3] in remaining_positions) and (prev_row[0] not in self.names) and ((self.main_teams.count(prev_row[4]) + self.teams.count(prev_row[4])) < 3):
+                        self.price_constraint -= prev_row[2]
+                        self.teams.append(prev_row[5])
+                        self.names.append(prev_row[0])
+                        self.subs.append(prev_row)
+                        remaining_positions[remaining_positions.index(prev_row[3])] = -1
         for val in remaining_positions: # For every remaining position, find the cheapest substitutes that do not interfere with the team constraints
+            if val == -1:
+                continue
             for index, row in df.iterrows():
                 if row["element_type"] == val and row["name"] not in self.names and (self.main_teams.count(row["team"]) + self.teams.count(row["team"]))< 3:
                     self.price_constraint -= row["value"]
@@ -169,8 +191,6 @@ if __name__ == "__main__":
     #    points += sum(r.extract_points())
     #print(points - 36*40)
 
-    r = totw(37, True)
-    print(r.find_totw())
-    print(r.extract_indices())
-    print(r.find_subs())
-    print(r.extract_subs())
+    for k in range(1,39):
+        r = totw(k, True, True)
+        print(r.extract_subs())
