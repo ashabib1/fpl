@@ -12,16 +12,10 @@ class evaluate:
 
     def dataloader(self, gw):
 
-        gw = 'gw' + str(gw)
-        url = 'gws/' + gw + '.csv'
-        gw = pd.read_csv(url, encoding='latin1') # Load gameweek data
-        pos_data = pd.read_csv('C:/Users/Adnan/Downloads/players_raw.csv', encoding='latin1') # Load position data
-        gw = gw.sort_values(by = 'element').reset_index(drop=True).reindex()
-        pos_data = pos_data.rename(columns={'id': 'element'})
-        pos_data_team_element = pos_data[['element', 'element_type','team']] # Extract position and team data
-        gw = pd.merge(gw, pos_data_team_element, on=['element'], how='left') # Merge dataframes
-        gw = gw[['name','total_points','value','element_type','team','element']]
-        return gw
+        gw = pd.read_csv('gws/gw' + str(gw) + '.csv', encoding='latin1').sort_values(by = 'element').reset_index(drop=True).reindex() # Load gameweek data
+        pos_data = pd.read_csv('players_raw.csv', encoding='latin1').rename(columns={'id': 'element'}) # Load position data
+        gw = pd.merge(gw, pos_data[['element', 'element_type','team']], on=['element'], how='left') # Extract Important Columns from Position data and Merge dataframes
+        return gw[['name','total_points','value','element_type','team','element']] # Return Dataframe with important columns
     
     def find_points_list(self):
         
@@ -68,8 +62,8 @@ class evaluate:
         changes = []
         sum = 0
         for val in range(0,37):
-            changes.append(len(set(self.gws[val] + self.gws[val+1])) - 12)
-            sum += len(set(self.gws[val] + self.gws[val+1])) - 12
+            changes.append(len(set(self.gws[val] + self.gws[val+1] + self.subs[val] + self.subs[val+1])) - 16)
+            sum += len(set(self.gws[val] + self.gws[val+1] + self.subs[val] + self.subs[val+1])) - 16
         first_wildcard = changes[0:18].index(max(changes[0:18])) # Find the maximum number of transfers in one gameweek for the first half of the season
         second_wildcard = changes[18:37].index(max(changes[18:37])) # Find the maximum number of transfers in one gameweek for the second half of the season
         print("The First Wilcard Chip will be played in Gameweek", first_wildcard + 2)
@@ -136,7 +130,7 @@ class evaluate:
 
 if __name__ == "__main__":
 
-    a_list = [54, 191, 125, 33, 204, 392, 82, 394, 235, 403, 143]
+    a_list = [54, 78, 125, 33, 12, 398, 82, 394, 416, 403, 143]
     b_list = [524, 435, 434, 508]
     list1 = []
     list3 = []
@@ -146,8 +140,8 @@ if __name__ == "__main__":
     s = evaluate(list1, list3)
     print(s.total_points())
 
-    c_list = [356, 297, 33, 303, 12, 92, 212, 205, 208, 97, 272]
-    d_list = [219, 301, 125, 558, 12, 398, 48, 208, 402, 403, 143]
+    c_list = [54, 77, 33, 303, 12, 82, 212, 205, 394, 97, 355]
+    d_list = [294, 561, 125, 558, 12, 398, 48, 394, 48, 403, 143]
     c_list_sub = [472, 435, 434, 508]
     d_list_sub = [147, 196, 319, 579]
     list_10, list_11 = [], []
@@ -163,7 +157,7 @@ if __name__ == "__main__":
     list2 = []
     subs = []
     for k in range(1,39):
-        r = totw(k,True)
+        r = totw(k,True,True)
         list2.append(r.extract_indices())
         subs.append(r.extract_subs())
     t = evaluate(list2, subs)
@@ -176,7 +170,23 @@ if __name__ == "__main__":
         r.find_toty()
         list3.append(r.find_elements())
         list3.append(r.find_elements())
-        list4.append(r.extract_subs_elements())
-        list4.append(r.extract_subs_elements())
+        list4.append(r.find_subs_elements())
+        list4.append(r.find_subs_elements())
     n = evaluate(list3, list4)
     print(n.total_points())
+
+    list2_2= []
+    subs_2 = []
+    for k in range(1,10):
+        r = toty(2*k-1,2*k,True)
+        r.find_toty()
+        list2_2.append(r.find_elements())
+        list2_2.append(r.find_elements())
+        subs_2.append(r.find_subs_elements())
+        subs_2.append(r.find_subs_elements())
+    for k in range(19,39):
+        r = totw(k,True)
+        list2_2.append(r.extract_indices())
+        subs_2.append(r.extract_subs())
+    t = evaluate(list2_2, subs_2)
+    print(t.total_points())
