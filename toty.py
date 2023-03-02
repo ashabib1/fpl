@@ -181,7 +181,7 @@ class toty:
         return [val[5] for val in self.toty_list]
     
     # Find the elements of the subsitutes for the team of the year
-    def find_subs_elements(self):
+    def find_subs(self):
 
         return [val[5] for val in self.subs]
 
@@ -189,6 +189,14 @@ class toty:
     def return_toty(self):
 
         return self.toty_list
+    
+    def return_subs(self):
+
+        return self.subs
+    
+    def return_subs_prices(self):
+
+        return [val[2] for val in self.subs]
 
     # Check if the three constraints are satisfied for the team of the week: Price, Position & Team
     def check_constraints(self, toty_list, alternative_check = False):
@@ -196,7 +204,7 @@ class toty:
         total_value = sum(val[2] for val in toty_list) # Price Constraint: Extract the total value of the team of the year 
         positions = [val[3] for val in toty_list] # Position Constraint: Extract positions of the team of the year
         self.main_teams = [val[4] for val in toty_list] # Team Constraint: Extract the teams of the theam of the year
-        self.find_subs() # Find optimal substitutes
+        self.find_substitutes() # Find optimal substitutes
         if total_value > self.price_constraint: # If price constraint not satisfied, return False
             return False
         if positions.count(1) != 1 or positions.count(2) < 3 or positions.count(2) > 5 or positions.count(3) < 2 or positions.count(3) > 5 or positions.count(4) < 1 or positions.count(4) > 3: # Check Positions Constraint
@@ -207,7 +215,7 @@ class toty:
         return True
 
     # Find the optimal subsitutes to help being within the constraints
-    def find_subs(self):
+    def find_substitutes(self):
 
         total_positions = Counter([1,1,2,2,2,2,2,3,3,3,3,3,4,4,4]) # List of all available positions
         taken_positions = Counter([val[3] for val in self.toty_list]) # List of all taken positions in the team of the year
@@ -235,3 +243,6 @@ if __name__ == "__main__":
     print(sum(r.find_prices()))
     print((r.find_prices()))
     print(sum(r.find_points()))
+    print(r.find_subs())
+
+
