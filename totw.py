@@ -113,6 +113,14 @@ class totw:
 
         return [val[5] for val in self.subs]
     
+    def return_subs(self):
+
+        return self.subs
+    
+    def return_subs_prices(self):
+
+        return [val[2] for val in self.subs]
+    
     # Find the cumulative number of points from the team of the weeks up to now
     def totw_cumulative(self):
 
@@ -123,7 +131,7 @@ class totw:
 
         total_value = sum(val[2] for val in self.totw_list)
         self.main_teams = [val[4] for val in self.totw_list]
-        self.find_subs()
+        self.find_substitutes()
         for val in range(1,21):
             if self.main_teams.count(val) > 3: # Check team constraint
                 return False
@@ -133,7 +141,7 @@ class totw:
             return True
 
     # Find the optimal subsitutes to help being within the constraints
-    def find_subs(self):
+    def find_substitutes(self):
 
         total_positions = Counter([1,1,2,2,2,2,2,3,3,3,3,3,4,4,4]) # List of all available positions
         taken_positions = Counter([val[3] for val in self.totw_list]) # List of all taken positions in the team of the year
