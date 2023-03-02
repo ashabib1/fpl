@@ -232,17 +232,3 @@ class toty:
                     self.subs.append(row.tolist()) # self.subs holds the list of all the substitutes
                     break
         return self.subs
-
-if __name__ == "__main__":
-
-    r = toty(4,4,True)
-    r.find_toty()
-    print(r.find_elements())
-    print(r.find_points())
-    print(r.find_names())
-    print(sum(r.find_prices()))
-    print((r.find_prices()))
-    print(sum(r.find_points()))
-    print(r.find_subs())
-
-

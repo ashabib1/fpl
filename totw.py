@@ -174,18 +174,3 @@ class totw:
                     self.subs.append(row.tolist())
                     break
         return self.subs
-
-
-if __name__ == "__main__":
-
-    r = totw(1,True,True)
-    for k in range(1,39):
-        r = totw(k,True,True,r.find_elements(),r.find_subs())
-        print("GAMEWEEK", k)
-        print(sum(r.find_points()))
-        print(r.find_subs())
-
-    t = totw(38,True,True)
-    print("GAMEWEEK",38)
-    print(sum(r.find_points()))
-    print(r.find_subs())
