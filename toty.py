@@ -252,11 +252,3 @@ class toty:
                     self.teams.append(row["team"])
                     break
         self.subs = temp_subs
-    
-if __name__ == "__main__":
-
-    r = toty(2,24,True)
-    r.find_toty()
-    print(r.find_elements())
-    print(r.find_teams())
-    print(r.return_subs())
