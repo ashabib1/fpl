@@ -114,7 +114,8 @@ class toty:
             else:
                 val[2] = df_i.loc[df_i['element']==val[5]].values.tolist()[0][2]
         if self.check_constraints(self.toty_list) == False and self.constraints == True: # If we want to apply constraints and the original team of the year does not satisfy the conditions, optimise the result
-            self.constraint_optimising() 
+            self.constraint_optimising()
+            self.substitute_optimising()
         self.toty_list = sorted(self.toty_list, key = lambda x:x[3]) # Sort the team of the year by position 
         return self.toty_list
     
@@ -232,3 +233,30 @@ class toty:
                     self.subs.append(row.tolist()) # self.subs holds the list of all the substitutes
                     break
         return self.subs
+    
+    def substitute_optimising(self):
+
+        extras = int((self.price_constraint - sum(self.find_prices())) / 4)
+        df = self.dataloader(self.gw_i)
+        temp_subs, self.teams = [], []
+        self.main_teams = [val[4] for val in self.toty_list]
+        for val in self.subs:
+            df_temp = df[df['value'] <= val[2] + extras]
+            df_temp = df_temp[df_temp['element_type'] == val[3]]
+            for index, row in df_temp.iterrows():
+                df_temp.at[index, "total_points"] = self.points[row["element"]]
+            df_temp = df_temp.sort_values("total_points", ascending=False)
+            for index, row in df_temp.iterrows():
+                if row.tolist() not in temp_subs and (self.main_teams.count(row["team"]) + self.teams.count(row["team"])) < 3:
+                    temp_subs.append(row.tolist())
+                    self.teams.append(row["team"])
+                    break
+        self.subs = temp_subs
+    
+if __name__ == "__main__":
+
+    r = toty(2,24,True)
+    r.find_toty()
+    print(r.find_elements())
+    print(r.find_teams())
+    print(r.return_subs())
