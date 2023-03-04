@@ -4,23 +4,51 @@ import pandas as pd
 
 class evaluate:
 
-    # Initialise the constructor with the lists for the starting XI and substitutes
-    def __init__(self, gws, subs=[]):
+    def __init__(self, gws: list, subs: list=[]):
+
+        """Initialise constructor
+
+        Initialise the evaluate class with the list of players for starting XI
+        and the list of substitutes.
+
+        Args:
+            gws (list): List of players for starting XI
+            subs (list): List of players for substitutes
+        """
 
         self.gws = gws
         self.points_list = self.find_points_list()
         self.subs = subs
 
-    # Load a the dataset for a specific gameweek
-    def dataloader(self, gw):
+    def dataloader(self, gw: int) -> pd.DataFrame:
+
+        """Load a the dataset for a specific gameweek
+
+        This function extracts the name, total points, price, position, 
+        team, and unique ID from the gameweek dataset.
+
+        Args:
+            gw (int): Gameweek to find points for
+
+        Returns:
+            pd.DataFrame: Gameweek Dataframe
+        """
 
         gw = pd.read_csv('gws/gw' + str(gw) + '.csv', encoding='latin1').sort_values(by = 'element').reset_index(drop=True).reindex() # Load gameweek data
         pos_data = pd.read_csv('players_raw.csv', encoding='latin1').rename(columns={'id': 'element'}) # Load position data
         gw = pd.merge(gw, pos_data[['element', 'element_type','team']], on=['element'], how='left') # Extract Important Columns from Position data and Merge dataframes
         return gw[['name','total_points','value','element_type','team','element']] # Return Dataframe with important columns
     
-    # Find the list of points for every player in every inputted list we have
-    def find_points_list(self):
+    def find_points_list(self) -> list:
+
+        """Find the list of points for every player in every inputted list we have
+
+        Find the list of points for every player that we have in our inputted
+        team.
+
+        Returns:
+            list: Points list
+        """
         
         full_points_list = []
         for gw in range(1,39):
@@ -42,9 +70,17 @@ class evaluate:
                     points_list.append(df.loc[df['element']==val].values.tolist()[0][1])
             full_points_list.append(points_list) # Append gameweek points list to overall points list   
         return full_points_list
+    
+    def total_points(self) -> int:
 
-    # Find total number of points for a set of players
-    def total_points(self):
+        """Find total number of points for a set of players
+
+        Add the total number of points for the set of players that
+        we are trying to evaluate
+
+        Returns:
+            int: Number of points
+        """
 
         points = 0
         points += self.find_triple_captain() # Increase points for the Triple Captain Chip
@@ -59,8 +95,19 @@ class evaluate:
             points += sum(gw_points_list) # Add gameweek points to total points
         return points
     
-    # Find number of deductable points
-    def find_deductable(self, free_hit_gw):
+    def find_deductable(self, free_hit_gw: int) -> int:
+
+        """Find number of deductable points
+
+        Find the number of non-free transfers made, and hence find the
+        number of points that need to be deducted.
+
+        Args:
+            free_hit_gw (int): Gameweek that we applied the free hit chip
+
+        Returns:
+            int: Deductable points
+        """
 
         changes = []
         sum = 0
@@ -81,8 +128,17 @@ class evaluate:
         else: # If more transfers were used than one per week, there are four points deducted per transfer exceeded
             return (4*sum)
     
-    # Find the gameweek for the Free Hit Chip
-    def find_free_chip(self):
+    def find_free_chip(self) -> list:
+
+        """Find the gameweek for the Free Hit Chip
+
+        Find the gameweek that has the biggest difference between
+        team of the week points and our team points and apply the 
+        free hit chip
+
+        Returns:
+            list: free hit gameweek
+        """
 
         totw_points = []
         for k in range(1,39): # Iterate and find the points of the team of the week for each gameweek
@@ -97,8 +153,17 @@ class evaluate:
         free_hit = totw(free_hit_gameweek,True)
         return [free_hit_gameweek, free_hit.find_elements()] # Return the free hit team that maximises points
     
-    # Find the gameweek for the Triple Captain Chip
-    def find_triple_captain(self):
+    def find_triple_captain(self) -> int:
+
+        """Find the gameweek for the Triple Captain Chip
+
+        Find the player that has scored the highest number of points and
+        apply the triple captain chip to them.
+
+        Returns:
+            int: Number of points achieved by the triple captain
+        """
+
         high_gameweek = -1
         high_points = -1
         high_index = -1
@@ -116,8 +181,16 @@ class evaluate:
         print("The Triple Captain Chip will be played in Gameweek", high_gameweek, "where the player", name, "scored", high_points, "points")
         return high_points
 
-    # Find the gameweek for the bench boost chip
-    def find_bench_boost(self):
+    def find_bench_boost(self) -> int:
+
+        """Find the gameweek for the bench boost chip
+
+        Find the gameweek that has the highest number of points
+        from the substitutes and apply the bench boost chip
+
+        Returns:
+            int: Points attained by the bench boost chip
+        """
         
         if self.subs == []: # Check if there are no subs
             return 0
