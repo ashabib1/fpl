@@ -3,23 +3,58 @@ from collections import Counter
 
 class toty:
 
-    # Initialise the constructor, with a range of gameweeks, and whether or not we want to satisfy the constraints
-    def __init__(self, gw_i=1, gw_f=38, constraints=False):
+    def __init__(self, gw_i: int=1, gw_f: int=38, constraints: bool=False):
+
+        """Initialise the constructor
+
+        Initialise the constructor with an initial gameweek, a final
+        gameweek, and whether or not we want to take into account
+        constraints.
+
+        Args:
+            gw_i (int): Initial gameweek
+            gw_f (int): Final gameweek
+            constraints (bool): Whether or not to take into account constraints
+        """
 
         self.gw_i = gw_i
         self.gw_f = gw_f
         self.constraints = constraints
 
-    # Load the data for a certain gameweek
-    def dataloader(self, gw):
+    def dataloader(self, gw: int) -> pd.DataFrame:
+
+        """Load the data for a certain gameweek
+
+        This function is called when the constructor is called, and extract the
+        name, total points, price, position, team, and unique ID from the 
+        gameweek dataset.
+
+        Args:
+            gw (int): The gameweek to load the data for
+
+        Returns:
+            pd.DataFrame: Gameweek dataframe
+        """
 
         gw = pd.read_csv('gws/gw' + str(gw) + '.csv', encoding='latin1').sort_values(by = 'element').reset_index(drop=True).reindex() # Load gameweek data
         pos_data = pd.read_csv('players_raw.csv', encoding='latin1').rename(columns={'id': 'element'}) # Load position data
         gw = pd.merge(gw, pos_data[['element', 'element_type','team']], on=['element'], how='left') # Extract Important Columns from Position data and Merge dataframes
         return gw[['name','total_points','value','element_type','team','element']] # Return Dataframe with important columns
 
-    # Returns the points sum for a chosen team for a chosen gameweek
-    def gw_points(self, team, gw):
+    def gw_points(self, team: list, gw: int) -> int:
+
+        """Returns the points sum for a chosen team for a chosen gameweek
+
+        Take a list of players and gameweek, and using the dataset, find the
+        number of points each player attained, and finding the sum.
+
+        Args:
+            team (list): List of players to find points for
+            gw (int): Gameweek to find points for
+
+        Returns:
+            int: Total number of points 
+        """
 
         gw = self.dataloader(gw)
         sum = 0
@@ -44,16 +79,38 @@ class toty:
                 sum += gw.loc[gw['element']==val].values.tolist()[2][1]
         return sum
 
-    # Define what we are trying to maximize, which is the cumulative gameweek points
-    def objective(self, team):
+    def objective(self, team: list) -> int:
+
+        """Find the number of points for the team in the range of gameweeks
+
+        Define what we are trying to maximize, which is the cumulative gameweek points.
+
+        Args:
+            team (list): List of players to find the points for
+
+        Returns:
+            int: Total number of points
+        """
 
         sum = 0
         for gw in range(self.gw_i, self.gw_f+1): # Add points to the team for each gameweek
             sum += self.gw_points(team, gw)
         return sum
 
-    # Find the top performers for over a give range of gameweeks
-    def top_performers(self, num):
+    def top_performers(self, num: int) -> list:
+
+        """Find the top performers for over a give range of gameweeks
+
+        Iterate through each gameweek, and find the number of points each
+        player attained. Organise this list in terms of points attained, and
+        return the indices of the top num players.
+
+        Args:
+            num (int): Number of top performers
+
+        Returns:
+            list: Indices of the top num performers
+        """
 
         self.points = [0] * 700 # Define points for each player
         for val in range(self.gw_i, self.gw_f+1): # Go through each gameweek and add the points by each player
@@ -74,8 +131,17 @@ class toty:
             total_points[total_points.index(max_val)] = -1
         return indices
 
-    # Find the team of the year over a given range of gameweeks
-    def find_toty(self):
+    def find_toty(self) -> list:
+
+        """Find the team of the year over a given range of gameweeks
+
+        This is the main function of the class, where we find the optimal team
+        of the year depending on what the user has input, including constraint 
+        adherence.
+
+        Returns:
+            list: List of the team of the year
+        """
 
         df = self.dataloader(38)
         goalkeepers, defenders, midfielders, forwards = [], [], [], []
@@ -119,8 +185,16 @@ class toty:
         self.toty_list = sorted(self.toty_list, key = lambda x:x[3]) # Sort the team of the year by position 
         return self.toty_list
     
-    # If we take into account the constraints, this function finds a team of the year that satisfies the constraints.
-    def constraint_optimising(self, changes=1):
+    def constraint_optimising(self, changes: int=1):
+
+        """Optimise the team of the year with the constraints
+
+        If we take into account the constraints, this function finds a team of the 
+        year that satisfies all of the constraints.
+
+        Args:
+            changes (int): number of changes to make
+        """
         
         potential_toty = []
         for val in self.performers:
@@ -151,56 +225,119 @@ class toty:
             self.constraint_optimising(changes=2)
         return
 
-    # Find the names of the team of the year
-    def find_names(self):
+    def find_names(self) -> list:
+
+        """Find the names of the team of the year.
+
+        Returns:
+            list: Names of the team of the year
+        """
 
         return [val[0] for val in self.toty_list]
 
-    # Find the points of the team of the year
-    def find_points(self):
+    def find_points(self) -> list:
+
+        """Find the points of the team of the year.
+
+        Returns:
+            list: Points of the team of the year
+        """
 
         return [val[1] for val in self.toty_list]
 
-    # Find the prices of the team of the year
-    def find_prices(self):
+    def find_prices(self) -> list:
+
+        """Find the prices of the team of the year.
+
+        Returns:
+            list: Prices of the team of the year
+        """
 
         return [val[2] for val in self.toty_list]
 
-    # Find the positions of the team of the year
-    def find_positions(self):
+    def find_positions(self) -> list:
+
+        """Find the positions of the team of the year.
+
+        Returns:
+            list: Positions of the team of the year
+        """
 
         return [val[3] for val in self.toty_list]
 
-    # Find the teams of the team of the year
-    def find_teams(self):
+    def find_teams(self) -> list:
+
+        """Find the teams of the team of the year.
+
+        Returns:
+            list: Teams of the team of the year
+        """
 
         return [val[4] for val in self.toty_list]
 
-    # Find the elements of the team of the year
-    def find_elements(self):
+    def find_elements(self) -> list:
+
+        """Find the elements of the team of the year.
+
+        Returns:
+            list: Elements of the team of the year
+        """
 
         return [val[5] for val in self.toty_list]
     
-    # Find the elements of the subsitutes for the team of the year
-    def find_subs(self):
+    def find_subs(self) -> list:
+
+        """Find the elements of the subsitutes for the team of the year.
+
+        Returns:
+            list: Elements of the substitutes of the team of the year
+        """
 
         return [val[5] for val in self.subs]
 
-    # Print the team of the year
-    def return_toty(self):
+    def return_toty(self) -> list:
+
+        """Return the team of the year.
+
+        Returns:
+            list: Team of the year
+        """
 
         return self.toty_list
     
-    def return_subs(self):
+    def return_subs(self) -> list:
+
+        """Return the substitutes of the team of the year
+
+        Returns:
+            list: Substitutes of the team of the year
+        """
 
         return self.subs
     
-    def return_subs_prices(self):
+    def return_subs_prices(self) -> list:
+
+        """Return the prices of the substitutes of the team of the year
+
+        Returns:
+            list: Prices of the substitutes of the team of the year
+        """
 
         return [val[2] for val in self.subs]
+    
+    def check_constraints(self, toty_list: list) -> bool:
 
-    # Check if the three constraints are satisfied for the team of the week: Price, Position & Team
-    def check_constraints(self, toty_list, alternative_check = False):
+        """Check if the constraints are satisfied
+        
+        Check if the three constraints are satisfied for the team of 
+        the week: Price, Position & Team
+
+        Args:
+            toty_list (list): A list to check constraints for
+
+        Returns:
+            bool: True if team satisfies all constraints. Else False
+        """
 
         total_value = sum(val[2] for val in toty_list) # Price Constraint: Extract the total value of the team of the year 
         positions = [val[3] for val in toty_list] # Position Constraint: Extract positions of the team of the year
@@ -215,8 +352,16 @@ class toty:
                 return False
         return True
 
-    # Find the optimal subsitutes to help being within the constraints
-    def find_substitutes(self):
+    def find_substitutes(self) -> list:
+
+        """Find the optimal subsitutes to help being within the constraints
+
+        Find the substitute positions available, and find the cheapest possible
+        players to fit into the substitute constraints
+
+        Returns:
+            list: Four substitute players
+        """
 
         total_positions = Counter([1,1,2,2,2,2,2,3,3,3,3,3,4,4,4]) # List of all available positions
         taken_positions = Counter([val[3] for val in self.toty_list]) # List of all taken positions in the team of the year
@@ -235,6 +380,12 @@ class toty:
         return self.subs
     
     def substitute_optimising(self):
+
+        """Find an optimal substitute combination
+
+        Find an optimal substitute combination in order to maximise the
+        bench boost chip when applied.
+        """
 
         extras = int((self.price_constraint - sum(self.find_prices())) / 4)
         df = self.dataloader(self.gw_i)

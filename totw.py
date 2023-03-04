@@ -3,8 +3,21 @@ from collections import Counter
 
 class totw:
 
-    # Initialise the constructor, with the current gameweek, whether we want constraints, and whether we want to take into account transfers
-    def __init__(self, gw, constraints=False, transfer_dependent=False, prev_totw = [], prev_subs = []):
+    def __init__(self, gw: int, constraints: bool=False, transfer_dependent: bool=False, prev_totw: list = [], prev_subs: list = []):
+
+        """Initialise the constructor
+
+        Initialise the team of the week constructor, with the current
+        gameweek, whether we want to satisfy the constraints, and whether
+        we want to take into account transfers.
+
+        Args:
+            gw (int): Current gameweek
+            constraints (bool): Whether we want to satisfy the constraints
+            transfer_dependent (bool): Whether we want to take into account transfers
+            prev_totw (list): Previous team of the week
+            prev_subs (list): Previous subs
+        """
 
         self.gw = gw
         self.constraints = constraints
@@ -13,16 +26,34 @@ class totw:
         self.prev_subs = prev_subs
         self.totw = self.find_totw()
 
-    # Load the data for the gameweek
-    def dataloader(self):
+    def dataloader(self) -> pd.DataFrame:
+
+        """Load the data for the current gameweek
+
+        This function is called when the constructor is called, and extract the
+        name, total points, price, position, team, and unique ID from the 
+        gameweek dataset.
+
+        Returns:
+            pd.DataFrame: Gameweek dataframe
+        """
 
         gw = pd.read_csv('gws/gw' + str(self.gw) + '.csv', encoding='latin1').sort_values(by = 'element').reset_index(drop=True).reindex() # Load gameweek data
         pos_data = pd.read_csv('players_raw.csv', encoding='latin1').rename(columns={'id': 'element'}) # Load position data
         gw = pd.merge(gw, pos_data[['element', 'element_type','team']], on=['element'], how='left') # Extract Important Columns from Position data and Merge dataframes
         return gw[['name','total_points','value','element_type','team','element']] # Return Dataframe with important columns
 
-    # Load the data for this gameweek and the previous gameweek - To take into account transfers
-    def prev_dataloader(self):
+    def prev_dataloader(self) -> pd.DataFrame:
+
+        """Load the data for this gameweek and the previous gameweek
+
+        This function loads the previous gameweek in order to take into account
+        transfers, and so make optimal transfer decisions on a gameweek-to-gameweek
+        basis.
+
+        Returns:
+            pd.DataFrame: Gameweek dataframe
+        """
 
         gw = pd.read_csv('gws/gw' + str(self.gw) + '.csv', encoding='latin1').sort_values(by = 'element').reset_index(drop=True).reindex() # Load gameweek data
         pos_data = pd.read_csv('players_raw.csv', encoding='latin1').rename(columns={'id': 'element'}) # Load position data
@@ -40,8 +71,17 @@ class totw:
         gw['effective_points'] = [x + y for x, y in zip(gw['total_points'], effective_extra_points)] # Find the effective points total
         return gw[['name','total_points','value','element_type','team','element','effective_points']] # Return Dataframe with important columns
     
-    # Find the team of the week
-    def find_totw(self):
+    def find_totw(self) -> list:
+
+        """Find the team of the week
+
+        This is the main function of the class, where we find the optimal team
+        of the week depending on what the user has input, including transfer
+        dependencies and constraint adherence.
+
+        Returns:
+            list: List of the team of the week
+        """
 
         if self.transfer_dependent == True and self.gw != 1: # If we want to take into account transfers, we find the current dataset and previous one
             df = self.prev_dataloader().sort_values('effective_points', ascending=False) # Sort
@@ -88,46 +128,98 @@ class totw:
         self.totw_list = sorted(self.totw_list, key = lambda x:x[3]) # Sort the list
         return self.totw_list
 
-    # Find the unique IDs of the players for the team of the week
-    def find_elements(self):
+    def find_elements(self) -> list:
+
+        """Find the unique IDs of the players for the team of the week.
+
+        Returns:
+            list: Unique IDs of the players for the team of the week
+        """
 
         return [val[5] for val in self.totw]
 
-    # Find the names of the players for the team of the week
-    def find_names(self):
+    def find_names(self) -> list:
+
+        """Find the names of the players for the team of the week.
+
+        Returns:
+            list: Names of the players for the team of the week
+        """
 
         return [val[0] for val in self.totw]
     
-    # Find the points of the players for the team of the week
-    def find_points(self):
+    def find_points(self) -> list:
+
+        """Find the points of the players for the team of the week.
+
+        Returns:
+            list: Points of the players for the team of the week
+        """
 
         return [val[1] for val in self.totw]
-    
-    # Find the prices of the players for the team of the week
-    def find_prices(self):
+
+
+    def find_prices(self) -> list:
+
+        """Find the prices of the players for the team of the week.
+
+        Returns:
+            list: Prices of the players for the team of the week
+        """
 
         return [val[2] for val in self.totw]
     
-    # Find the substitutes of the players for the team of the week
-    def find_subs(self):
+    def find_subs(self) -> list:
+
+        """Find the substitutes of the players for the team of the week.
+
+        Returns:
+            list: Unique IDs of the substitutes of the team of the week
+        """
 
         return [val[5] for val in self.subs]
     
-    def return_subs(self):
+    def return_subs(self) -> list:
+
+        """Find the substitutes of the team of the week.
+        
+        Returns:
+            list: The substitutes of the team of the week
+        """
 
         return self.subs
     
-    def return_subs_prices(self):
+    def return_subs_prices(self) -> list:
+
+        """Find the prices of the substitutes of the team of the week.
+
+        Returns:
+            list: The prices of substitutes of the team of the week
+        """
 
         return [val[2] for val in self.subs]
     
-    # Find the cumulative number of points from the team of the weeks up to now
-    def totw_cumulative(self):
+    def totw_cumulative(self) -> int:
+
+        """Find the cumulative number of points from the team of the weeks up to now.
+
+        Returns:
+            int: Cumulative number of points achieved by the team of the week up to now
+        """
 
         return sum(sum(val[1] for val in totw(k,self.constraints).totw) for k in range(1, self.gw+1))
 
-    # Check if the three constraints are satisfied for the team of the week: Price, Team & Position
-    def check_constraints(self):
+    def check_constraints(self) -> bool:
+
+        """Check if the team satisfies all of the constraints
+
+        Check if the team of the week satisfies all of the constraints. First
+        check if the team constraint is satisfied, then check if the price
+        constraint is satisfied. The position satisfied is satisfied regardless.
+
+        Returns:
+            bool: True if team satisfies all constraints. Else False
+        """
 
         total_value = sum(val[2] for val in self.totw_list)
         self.main_teams = [val[4] for val in self.totw_list]
@@ -140,8 +232,16 @@ class totw:
         else:
             return True
 
-    # Find the optimal subsitutes to help being within the constraints
-    def find_substitutes(self):
+    def find_substitutes(self) -> list:
+
+        """Find the optimal subsitutes to help being within the constraints
+
+        Find the substitute positions available, and find the cheapest possible
+        players to fit into the substitute constraints
+
+        Returns:
+            list: Four substitute players
+        """
 
         total_positions = Counter([1,1,2,2,2,2,2,3,3,3,3,3,4,4,4]) # List of all available positions
         taken_positions = Counter([val[3] for val in self.totw_list]) # List of all taken positions in the team of the year
